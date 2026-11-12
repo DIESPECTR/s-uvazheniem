@@ -43,7 +43,7 @@ export default function App(){
    const entry={...data,input:sourceText,mode:sourceMode,level:sourceLevel,time:Date.now()};setResult(entry);
    const updated=[entry,...history.filter(item=>item.input!==entry.input||item.text!==entry.text||item.mode!==entry.mode)].slice(0,30);
    setHistory(updated);if(!saveHistory(updated))notify('Перевод готов, но браузер не разрешил сохранить историю.');
-  }catch(err){if(err.name!=='AbortError'&&id===version.current)setError(err.message||'Связь потеряна. Ваш текст на месте — попробуйте ещё раз.');}
+  }catch(err){if(err.name!=='AbortError'&&id===version.current)setError(err instanceof TypeError?'Связь потеряна. Ваш текст на месте — попробуйте ещё раз.':err instanceof SyntaxError?'Сервер вернул некорректный ответ. Ваш текст на месте — попробуйте ещё раз.':err.message||'Не удалось выполнить перевод. Ваш текст на месте — попробуйте ещё раз.');}
   finally{if(id===version.current)setLoading(false);}
  }
  async function copy(value=result?.text){
