@@ -1,0 +1,8 @@
+.mcp.json
+.quadcodeai/
+node_modules/
+dist/
+.env
+.env.*
+!.env.example
+.temp/
