@@ -15,7 +15,19 @@ Open http://localhost:3000. All 40 predefined examples work without an API key. 
 
 ## Enable AI
 
-Create `.env` using `.env.example` and set the server-only `AI_API_KEY`. Restart the server. Optional `AI_BASE_URL` points to an OpenAI-compatible `/v1` API; `AI_MODEL` defaults to `gpt-6-luna`; set `AI_MODEL=gpt-4o-mini` to use the previous model. Luna requests use `reasoning_effort=none` and `max_completion_tokens=1800`. Never use a `VITE_` prefix for secrets. The new Luna contract test (TC7) has been written but not run, and no live provider call has been verified. Earlier test results predate this migration.
+Create `.env` using `.env.example` and set the server-only `AI_API_KEY`. Restart the server. Optional `AI_BASE_URL` points to an OpenAI-compatible `/v1` API; `AI_MODEL` defaults to `gpt-6-luna`; set `AI_MODEL=gpt-4o-mini` to use the previous model. Luna requests use `reasoning_effort=none` and `max_completion_tokens=1800`. Never use a `VITE_` prefix for secrets. TC7 and TC12 passed with a mock provider: both targets request gpt-6-luna by default and use distinct system prompts. This does not verify live model access.
+
+## Railway — handoff to Yan
+
+1. Railway → New Project → Deploy from GitHub repo → `DIESPECTR/s-uvazheniem`, branch `main`. Leave the root directory at `/`. The root Dockerfile handles Node 22, installation, Vite build and production startup; no custom build/start commands are needed. No database or volume is required.
+2. Service → **Variables**: add `AI_API_KEY` (the OpenAI secret key) and `AI_MODEL=gpt-6-luna` for both translators (verify provider access on staging first). Optional `AI_BASE_URL=https://api.openai.com/v1` is already the server default. Do not use `OPENAI_API_KEY` or any `VITE_` key: this application reads `AI_API_KEY`.
+3. Deploy, then Settings → Networking → **Generate Domain** for the HTTPS URL. Railway supplies `PORT`; do not hardcode it. `NODE_ENV=production` is already set in the image.
+
+For the standard direct Railway public endpoint behind one trusted reverse proxy, set `TRUST_PROXY=1` so the existing IP limiter distinguishes users. Recheck the proxy chain before adding another proxy/CDN; do not enable arbitrary proxy trust. Start with one replica (the rate limiter is in memory).
+
+Optional Railway healthcheck path: `/api/status`. It returns HTTP 200 without an API key; `ai:true` only means a key is configured, not that OpenAI has accepted it. After deployment, translate a custom phrase not in the demo library and confirm the result is AI-generated. The Docker image, Railway deployment and live OpenAI access have not been exercised in this environment (Docker is unavailable).
+
+Both modes use the same `AI_MODEL`, with different server-side system prompts. The sample and code default to `gpt-6-luna`. An existing Railway override takes precedence; a successful mock request does not establish live model access.
 
 ## Production
 
@@ -30,9 +42,9 @@ Use `TRUST_PROXY=1` only behind exactly one trusted reverse proxy. The rate limi
 
 ## GitHub and deployment handoff
 
-Publication and the collaborator invitation are pending; this repository has not yet been uploaded to GitHub.
+Source code is published at https://github.com/DIESPECTR/s-uvazheniem (public, branch `main`). Public access and the 19-file publication manifest were verified without authentication.
 
-After publishing, the owner should open **Settings → Collaborators → Add people**, select **cxrtisxl**, and grant write access (the default collaborator access for a personal repository). The collaborator must accept the invitation. Hosting access is configured separately; GitHub write access alone does not grant access to a hosting account.
+**cxrtisxl** has been invited with **write** access; the invitation is pending acceptance. Hosting access is configured separately; GitHub write access alone does not grant access to a hosting account. The application itself has not been deployed to a public hosting service.
 
 For deployment, cxrtisxl should connect the repository to a Node.js 22+ service, configure the build/start commands above, and add `AI_API_KEY` directly in the host's secret settings. Do not share keys through chat, source files, or commits. Set `AI_MODEL` explicitly after verifying provider access and request compatibility; the GPT-6 Luna request wiring is implemented, but its new contract test and live-provider verification are still pending.
 

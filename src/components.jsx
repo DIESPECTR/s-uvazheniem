@@ -1,6 +1,9 @@
 import React, {useEffect, useRef} from 'react';
 import {Languages, X, ArrowUpRight, Shuffle, ChevronDown, Copy, Printer, Share2} from 'lucide-react';
 export function Brand(){ return <span className="brand"><span className="brand-mark"><Languages size={18}/></span>С УВАЖЕНИЕМ.</span>; }
+export function TranslationTargets({target,onChange}){
+ return <div className="target-switch" role="group" aria-label="Режим переводчика">{[['chat','С УВАЖЕНИЕМ.'],['report','Я.БЛАН']].map(([id,label])=><button key={id} type="button" aria-pressed={target===id} aria-describedby={target===id?'target-description':undefined} onClick={()=>onChange(id)}>{label}</button>)}</div>;
+}
 export const satireNotice = 'Юмористическая интерпретация, а не достоверное чтение чужих мыслей.';
 export function Modal({title,subtitle,onClose,children}){
  const ref=useRef(null);

@@ -4,10 +4,11 @@ TYPE: note
 ---
 # Требования приложения
 KIND: spec
-IMPL: src/App.jsx, src/components.jsx, src/storage.js, src/examples.js, src/styles.css, server/translate.js, server/index.js
+IMPL: src/App.jsx, src/components.jsx, src/storage.js, src/examples.js, src/reportExamples.js, src/styles.css, server/translate.js, server/index.js
 TESTS: tests/app.test.js
 TEST_RUN: 5 tests, 0.063s, 5/5 passed; production build passed (1.04s). Live: desktop 1440px, mobile 390px, 10/10 browser scenario checks passed; HTTP 200/400/403/429 passed. Logs: .temp/tests.log, .temp/build.log, .temp/http-checks.log.
-LIVE_LIMITS: Real AI-provider call requires AI_API_KEY and was not run. Native OS share sheet and print/PDF output were not exercised; card preview and copy/print controls are implemented.
+LIVE_TEST_RUN: 2026-11-12 Railway audit: 4 real AI requests succeeded (3 measured: 1.568–1.867s); mobile 360×808/390×852, four modes, themes, history restore and simulated stale/failure cases checked; 3 live HTTP validation cases returned 400. Local fixes: TC9 headers + TC10 browser checks 5/5 passed in 0.738s; production build passed in 1.25s. Evidence: .temp/test_logs/release-audit.json. Historical TEST_RUN above is not a new unit-test run.
+LIVE_LIMITS: Local fixes are not committed or deployed. Live still returns X-Frame-Options: DENY. Telegram clients and third-party iframe blocking not exercised; TC9 is partial. Provider model identity not exposed, Luna not independently verified. Native OS share, PDF, real provider timeout, rate-limit load tests, unit tests and spec linter were not run in this audit. One reverse result remained too corporate; long errors may require scrolling.
 
 ## Requirements
 - R1. Четыре режима, 40 заданных пар, три уровня тона. Без AI работают точные демопары с маркировкой; смена тона и альтернативы требуют AI.
@@ -31,6 +32,28 @@ LIVE_LIMITS: Real AI-provider call requires AI_API_KEY and was not run. Native O
 
 - TC7 (R7): Mock-provider проверка фактического JSON-запроса: дефолт Luna и её датированный вариант используют новые параметры без temperature/max_tokens; явно выбранная gpt-4o-mini сохраняет temperature/max_tokens без reasoning_effort/max_completion_tokens. Статус: тест написан, запуск ожидает настройки команды.
 
+## Release fixes — 2026-11-12
+- R9. Разрешать встраивание только своему origin и https://web.telegram.org через CSP frame-ancestors; не отдавать конфликтующий X-Frame-Options: DENY. Это не заменяет проверку реального Telegram-клиента.
+- R10. При сетевом сбое и не-JSON ответе показывать понятное русское сообщение, сохранять ввод и разрешать повторный запрос. Сообщения JSON API сохранять.
+- TC9 (R9) [live, ~30s]: Проверить CSP и отсутствие X-Frame-Options в HTTP-ответе; отдельно проверить открытие Mini App в Telegram Web и запрет постороннего iframe. Проверка в реальном Telegram ожидается.
+- TC10 (R10) [live, ~10s]: В локальном браузере имитировать отказ fetch и HTML вместо JSON; проверить русскую ошибку, сохранение текста, повторный запрос и отсутствие записи ошибки в истории.
+
 ## Deployment
 - Настроить AI_API_KEY на сервере для живого AI. Без ключа доступен честный деморежим.
 - Карточка шаринга — HTML-предпросмотр, скриншот пользователем и печать/PDF; автоматического PNG-экспорта нет.
+
+## Объединение переводчиков — [#plans.translator_merge]
+MERGE_TEST_RUN: 7/7 автоматических тестов за 62.24 ms, включая 55 демопар и подставного провайдера; production-сборка 1.84 s. Лог: .temp/test_logs/translator-merge.log. TC11 проверен локально; TC13 проверен частично на 360×808 (обе темы, оба назначения, вывод на 792/716 px, подставной clipboard). Реальный Telegram, системный буфер и живой провайдер не проверены.
+- R11. Один экран с переключателем «С УВАЖЕНИЕМ. / Я.БЛАН» и общим полем. Смена назначения сохраняет ручной ввод, отменяет текущий запрос, очищает результат и не делает новый запрос; для неизменённого примера подставляет демо выбранного назначения. Существующие адресаты, уровень и обратный перевод остаются в чате; отчёты не пишутся в локальную историю.
+- R12. Я.БЛАН использует отдельный системный промпт и 15 обозначенных демопар с сохранением фактов. API выбирает назначение из поля target (chat/report), при отсутствии target сохраняет прежний формат чата. Сервер и конфигурация Railway общие.
+- R13. В обоих назначениях готовая стартовая пара с обозначением «не AI» видна при 360×800. В отчёте доступны генерация/повтор и копирование, нет ползунка, реверса и аудио.
+- TC11 (R11) [live]: Переключить назначения во время запроса, проверить сохранение текста, игнорирование запоздалого ответа, отсутствие автозапроса и записи отчёта в истории.
+- TC12 (R12): Прогнать все демопары, проверить выбор промпта по target, совместимость чата, неизвестный target, ошибку произвольного ввода без ключа и возврат демо при отказе провайдера.
+- TC13 (R13) [live]: Проверить 360×800, обе темы, доступность результата и маркировки без скролла, копирование, отсутствие лишних элементов; отдельно открыть в реальном Telegram.
+- R14. Под переключателем — назначение выбранного режима. Заголовок страницы и подсказки меняются вместе с режимом. «Я.БЛАН» показывает поле, действие и результат в одну колонку и на широком экране; режим сообщений сохраняет адресатов и двухколоночный редактор на десктопе.
+- TC14 (R14) [live, ~20s]: Переключить режимы в обеих темах на 360 px, проверить подпись, заголовок, стартовую демопару и черновик; на десктопе проверить порядок блоков Я.БЛАН и две колонки сообщений.
+MODE_UI_TEST_RUN: TC14 пройден локально на 360×808 и 1440 px. Маркировка демо видна на 789 px (чат) и 711 px (отчёт) в обеих темах без горизонтального переполнения. Черновик сохраняется в обе стороны. Сборка Vite прошла за 1.13 s.
+
+- R15. В обоих переводчиках у редактора нативная контрастная каретка и рамка фокуса. Вертикальный жест страницы вне поля снимает фокус без потери черновика; прокрутка и выделение внутри поля не прерывают ввод.
+- TC15 (R15) [live]: при ширине 390 px проверить жест внутри поля, горизонтальный и короткий жест снаружи, вертикальную прокрутку снаружи и повторный фокус в обоих режимах. DOM-проверки прошли; мигание каретки, рамка при активном окне и системная клавиатура требуют проверки в Telegram на телефоне.
+DEBUG_TEST_RUN: 7/7, 59 ms, включая TC7/TC12 для Luna и отдельных промптов; Vite build 1.37 s. Лог: .temp/test_logs/translator-merge.log.

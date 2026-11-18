@@ -59,3 +59,27 @@ test('TC7: Luna defaults and legacy model request contracts',async()=>{
   }
  }
 });
+
+
+test('TC12: report route has 15 honest demos and its own prompt',async()=>{
+ const {reportExamples}=await import('../src/reportExamples.js');
+ assert.equal(reportExamples.length,15);
+ assert.equal(new Set(reportExamples.map(e=>e.input)).size,15);
+ for(const e of reportExamples){
+  const response=await translate({target:'report',text:e.input},{env:{}});
+  assert.equal(response.source,'demo');assert.equal(response.text,e.output);assert.match(response.notice,/не AI/);
+ }
+ const body={...base,target:'report',action:'translate'};
+ assert.throws(()=>validate({...body,target:null}),e=>e.status===400);
+ assert.throws(()=>validate({...body,action:'alternative'}),e=>e.status===400);
+ await assert.rejects(translate(body,{env:{}}),e=>e.status===503);
+ const prompts=[];
+ const fetchImpl=async(_url,options)=>{const {model,messages}=JSON.parse(options.body);assert.equal(model,'gpt-6-luna');assert.equal(messages[0].role,'system');prompts.push(messages[0].content);assert.equal(messages[1].content,base.text);return {ok:true,json:async()=>({choices:[{message:{content:'Формулировка'}}]})};};
+ const provider={env:{AI_API_KEY:'mock-only'},fetchImpl};
+ assert.equal((await translate(body,provider)).source,'ai');
+ assert.equal((await translate({...base,target:'chat'},provider)).source,'ai');
+ assert.notEqual(prompts[0],prompts[1]);
+ assert.match(prompts[0],/Я\.БЛАН/);assert.match(prompts[0],/не выдумывай действия/);assert.match(prompts[1],/меняй только тон/);
+ const fallback=await translate({target:'report',text:reportExamples[0].input},{env,fetchImpl:async()=>({ok:false})});
+ assert.equal(fallback.source,'demo');assert.match(fallback.notice,/AI недоступен/);
+});
